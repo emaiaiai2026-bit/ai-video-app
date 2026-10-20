@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تطبيق توليد الفيديوهات بالذكاء الاصطناعي</title>
-    <!-- استخدام Tailwind CSS لتصميم سريع وجميل يناسب الموبايل -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
@@ -12,17 +11,17 @@
     <div class="w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
         <h1 class="text-2xl font-bold text-center mb-6 text-indigo-400">مولد الفيديوهات بالذكاء الاصطناعي</h1>
         
-        <!-- حقل إدخال مفتاح الـ API الخاص بحسابك على Hugging Face -->
+        <!-- حقل إدخال مفتاح الـ API -->
         <div class="mb-4">
             <label class="block text-sm font-medium mb-2 text-gray-300">مفتاح Hugging Face API Token:</label>
-            <input type="password" id="apiToken" placeholder="أدخل الـ Token هنا..." 
+            <input type="password" id="apiToken" placeholder="ألصق الـ Token هنا..." 
                 class="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 text-sm">
         </div>
 
-        <!-- حقل إدخال الوصف (Prompt) للفيديو -->
+        <!-- حقل إدخال الوصف -->
         <div class="mb-4">
-            <label class="block text-sm font-medium mb-2 text-gray-300">صف الفيديو الذي تريده:</label>
-            <textarea id="promptInput" rows="3" placeholder="مثال: A cinematic shot of a futuristic city..." 
+            <label class="block text-sm font-medium mb-2 text-gray-300">صف الفيديو أو الصورة المتحركة:</label>
+            <textarea id="promptInput" rows="3" placeholder="مثال: Cinematic view of a futuristic flying car..." 
                 class="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"></textarea>
         </div>
 
@@ -44,25 +43,41 @@
             const btn = document.getElementById('generateBtn');
 
             if (!apiToken || !prompt) {
-                alert('الرجاء إدخال مفتاح الـ Token ووصف الفيديو!');
+                alert('الرجاء إدخال المفتاح ووصف الفيديو!');
                 return;
             }
 
-            resultArea.innerHTML = "⏳ جاري إرسال الطلب ومعالجة الفيديو... يرجى الانتظار.";
+            resultArea.innerHTML = "⏳ جاري إرسال الطلب ومعالجة الفيديو عبر الذكاء الاصطناعي... قد يستغرق ذلك دقيقة.";
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
-            try {
-                // سنقوم بربط هذا الزر بنموذج مجاني مباشر عبر Hugging Face API في الخطوة القادمة
-                // هذا كود تجريبي لاختبار استجابة الواجهة
-                setTimeout(() => {
-                    resultArea.innerHTML = "✅ تم استلام الطلب بنجاح! سيتم ربط النتيجة الفعلية بالخطوة القادمة.";
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50');
-                }, 2000);
+            const MODEL_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2";
 
+            try {
+                const response = await fetch(MODEL_URL, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${apiToken}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ inputs: prompt })
+                });
+
+                if (!response.ok) {
+                    throw new Error("فشل الاتصال بالنموذج، تأكد أن الـ Token صحيح أو جرب وصفاً آخر.");
+                }
+
+                const blob = await response.blob();
+                const mediaUrl = URL.createObjectURL(blob);
+
+                resultArea.innerHTML = `
+                    <p class="text-green-400 mb-2 font-bold">✅ تم التوليد بنجاح!</p>
+                    <img src="${mediaUrl}" alt="Generated AI Media" class="w-full rounded-lg shadow-lg border border-gray-600 mt-2">
+                    <a href="${mediaUrl}" download="ai-video.jpg" class="inline-block mt-3 text-indigo-400 underline text-xs">تحميل النتيجة</a>
+                `;
             } catch (error) {
                 resultArea.innerHTML = "❌ حدث خطأ: " + error.message;
+            } finally {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50');
             }
