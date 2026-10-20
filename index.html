@@ -3,83 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تطبيق توليد الفيديوهات بالذكاء الاصطناعي</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>مولد الفيديوهات بالذكاء الاصطناعي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center p-4">
-
-    <div class="w-full max-w-md bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
-        <h1 class="text-2xl font-bold text-center mb-6 text-indigo-400">مولد الفيديوهات بالذكاء الاصطناعي</h1>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-4">
+    <div class="bg-slate-800 p-6 rounded-2xl shadow-xl w-full max-w-md border border-slate-700">
+        <h1 class="text-2xl font-bold text-center mb-6 text-indigo-300">مولد الفيديوهات بالذكاء الاصطناعي</h1>
         
-        <!-- حقل إدخال مفتاح الـ API -->
         <div class="mb-4">
-            <label class="block text-sm font-medium mb-2 text-gray-300">مفتاح Hugging Face API Token:</label>
-            <input type="password" id="apiToken" placeholder="ألصق الـ Token هنا..." 
-                class="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 text-sm">
+            <label class="block text-sm font-medium mb-2 text-slate-300">مفتاح Hugging Face API Token:</label>
+            <input type="password" id="apiToken" placeholder="ألصق الـ Token هنا..." class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-white">
         </div>
 
-        <!-- حقل إدخال الوصف -->
-        <div class="mb-4">
-            <label class="block text-sm font-medium mb-2 text-gray-300">صف الفيديو أو الصورة المتحركة:</label>
-            <textarea id="promptInput" rows="3" placeholder="مثال: Cinematic view of a futuristic flying car..." 
-                class="w-full p-3 bg-gray-900 border border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"></textarea>
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-2 text-slate-300">صف الفيديو أو الصورة المتحركة:</label>
+            <textarea id="prompt" rows="3" placeholder="مثال: Cinematic view of a futuristic flying car..." class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-white"></textarea>
         </div>
 
-        <!-- زر التوليد -->
-        <button onclick="generateVideo()" id="generateBtn" 
-            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3 rounded-lg transition duration-200">
-            توليد الفيديو 🎬
+        <button onclick="generateVideo()" id="generateBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium p-3 rounded-lg transition duration-200 shadow-lg">
+            🎬 توليد الفيديو
         </button>
 
-        <!-- منطقة عرض الحالة أو النتيجة -->
-        <div id="resultArea" class="mt-6 text-center text-sm text-gray-400"></div>
+        <div id="status" class="mt-4 text-center text-sm"></div>
+        <div id="result" class="mt-4 flex justify-center"></div>
     </div>
 
     <script>
         async function generateVideo() {
-            const apiToken = document.getElementById('apiToken').value.trim();
-            const prompt = document.getElementById('promptInput').value.trim();
-            const resultArea = document.getElementById('resultArea');
+            const token = document.getElementById('apiToken').value.trim();
+            const promptText = document.getElementById('prompt').value.trim();
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
             const btn = document.getElementById('generateBtn');
 
-            if (!apiToken || !prompt) {
-                alert('الرجاء إدخال المفتاح ووصف الفيديو!');
+            if (!token || !promptText) {
+                statusDiv.innerHTML = '<span class="text-red-400">الرجاء إدخال الـ Token ووصف الفيديو!</span>';
                 return;
             }
 
-            resultArea.innerHTML = "⏳ جاري إرسال الطلب ومعالجة الفيديو عبر الذكاء الاصطناعي... قد يستغرق ذلك دقيقة.";
             btn.disabled = true;
-            btn.classList.add('opacity-50');
-
-            const MODEL_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-2";
+            btn.innerText = 'جاري المعالجة والتوليد...';
+            statusDiv.innerHTML = '<span class="text-yellow-400">⏳ جاري إرسال الطلب للذكاء الاصطناعي، قد يستغرق دقيقة...</span>';
+            resultDiv.innerHTML = '';
 
             try {
-                const response = await fetch(MODEL_URL, {
+                const response = await fetch("https://api-inference.huggingface.co/models/camenduru/text-to-video-ms-1.7b", {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${apiToken}`,
+                        "Authorization": `Bearer ${token}`,
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ inputs: prompt })
+                    body: JSON.stringify({ inputs: promptText })
                 });
 
                 if (!response.ok) {
-                    throw new Error("فشل الاتصال بالنموذج، تأكد أن الـ Token صحيح أو جرب وصفاً آخر.");
+                    throw new Error('فشل الاتصال بالخادم، تأكد من صحة الـ Token');
                 }
 
                 const blob = await response.blob();
-                const mediaUrl = URL.createObjectURL(blob);
+                const videoUrl = URL.createObjectURL(blob);
 
-                resultArea.innerHTML = `
-                    <p class="text-green-400 mb-2 font-bold">✅ تم التوليد بنجاح!</p>
-                    <img src="${mediaUrl}" alt="Generated AI Media" class="w-full rounded-lg shadow-lg border border-gray-600 mt-2">
-                    <a href="${mediaUrl}" download="ai-video.jpg" class="inline-block mt-3 text-indigo-400 underline text-xs">تحميل النتيجة</a>
-                `;
+                statusDiv.innerHTML = '<span class="text-green-400">✨ تم توليد الفيديو بنجاح!</span>';
+                resultDiv.innerHTML = `<video controls autoplay loop class="w-full rounded-lg shadow-md mt-2"><source src="${videoUrl}" type="video/mp4">متصفحك لا يدعم عرض الفيديو.</video>`;
             } catch (error) {
-                resultArea.innerHTML = "❌ حدث خطأ: " + error.message;
+                statusDiv.innerHTML = `<span class="text-red-400">❌ حدث خطأ: تأكد من صحة الـ Token وأن النموذج جاهز.</span>`;
             } finally {
                 btn.disabled = false;
-                btn.classList.remove('opacity-50');
+                btn.innerText = '🎬 توليد الفيديو';
             }
         }
     </script>
